@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD de Usuários</title>
+    <!-- Incluindo o Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CRUD de Usuários</h1>
+    <form id="userForm">
+        <input type="hidden" id="userId">
+        <div class="form-group">
+            <label for="name">Nome:</label>
+            <input type="text" class="form-control" id="name" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" class="form-control" id="email" required>
+        </div>
+        <div class="form-group">
+            <label for="age">Idade:</label>
+            <input type="number" class="form-control" id="age" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+    </form>
+
+    <h2 class="mt-5">Lista de Usuários</h2>
+    <table class="table table-striped" id="userTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Idade</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Usuários serão listados aqui -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Incluindo o Bootstrap e o jQuery -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    const userForm = document.getElementById('userForm');
+    const userTable = document.getElementById('userTable').getElementsByTagName('tbody')[0];
+
+    // Função para listar usuários
+    async function fetchUsers() {
+        const response = await fetch('http://localhost:3000/api/users');
+        if (!response.ok) {
+            alert('Erro ao buscar usuários');
+            return;
+        }
+
+        const users = await response.json();
+        userTable.innerHTML = ''; // Limpa a tabela
+
+        users.forEach(user => {
+            const row = userTable.insertRow();
+            row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+                <td>${user.age}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick="editUser(${user.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteUser(${user.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+        });
+    }
+
+    // Função para salvar um usuário (criar ou atualizar)
+    userForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Impede o envio do formulário padrão
+
+        const userId = document.getElementById('userId').value;
+        const user = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            age: parseInt(document.getElementById('age').value)
+        };
+
+        const method = userId ? 'PUT' : 'POST';
+        const url = userId ? `http://localhost:3000/api/users/${userId}` : 'http://localhost:3000/api/users';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        });
+
+        if (response.ok) {
+            userForm.reset(); // Limpa o formulário
+            document.getElementById('userId').value = ''; // Limpa o ID do usuário
+            fetchUsers(); // Atualiza a lista de usuários
+        } else {
+            const error = await response.json();
+            alert(error.error);
+        }
+    });
+
+    // Função para editar um usuário
+function editUser(id) {
+    // Encontra a linha correspondente ao usuário na tabela
+    const row = Array.from(userTable.rows).find(row => row.cells[0].innerText == id);
+
+    if (!row) {
+        alert('Usuário não encontrado!');
+        return; // Sai da função se o usuário não foi encontrado
+    }
+
+    // Preenche o formulário com os dados do usuário
+    document.getElementById('userId').value = id;
+    document.getElementById('name').value = row.cells[1].innerText;
+    document.getElementById('email').value = row.cells[2].innerText;
+    document.getElementById('age').value = row.cells[3].innerText;
+}
+    // Função para excluir um usuário
+    async function deleteUser(id) {
+        const response = await fetch(`http://localhost:3000/api/users/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            fetchUsers(); // Atualiza a lista de usuários
+        } else {
+            const error = await response.json();
+            alert(error.error);
+        }
+    }
+
+    // Carregar usuários na inicialização
+    fetchUsers();
+</script>
+</body>
+</html>
